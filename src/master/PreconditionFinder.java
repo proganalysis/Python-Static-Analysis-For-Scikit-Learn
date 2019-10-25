@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import java.util.Queue;
 
 import com.ibm.wala.cast.ir.ssa.AstLexicalAccess;
+import com.ibm.wala.cfg.Util;
 import com.ibm.wala.shrikeBT.IBinaryOpInstruction;
 import com.ibm.wala.ssa.IR;
 import com.ibm.wala.ssa.ISSABasicBlock;
@@ -68,16 +69,15 @@ public class PreconditionFinder {
 		return "";
 	}
 	
-	private void DoReplacement(ISSABasicBlock last_block, ISSABasicBlock current_block, IR ir) {
-		Constraint c;
-		c = Constraint.getCopy(block_to_constraint.get(last_block));
+	private boolean DoReplacement(ISSABasicBlock last_block, ISSABasicBlock current_block, IR ir) {
+		
 		int start = current_block.getFirstInstructionIndex();
         int last = current_block.getLastInstructionIndex();
         SSAInstruction[] instructions = ir.getInstructions();
         CustomVisitor vis = new CustomVisitor();
-        
         // Check if last block had a phi.
         // Convert anything in phi to the ones we want.
+        /*
         boolean has_phi = false;
         SSAPhiInstruction phi2 = null;
         for (SSAPhiInstruction phi : Iterator2Iterable.make(last_block.iteratePhis())) {
@@ -92,8 +92,10 @@ public class PreconditionFinder {
             	phi2 = phi;
             }
         }
+        */
         
         // Last block has a phi so we're in an if else
+        /*
         if(has_phi) {
         	boolean is_goto = false;
         	boolean is_if = false;
@@ -137,7 +139,79 @@ public class PreconditionFinder {
             	}
         	}
         }
-        
+        */
+        Constraint c = null;
+		
+        // Check if the last block is an if.
+        if (current_block.getLastInstructionIndex() >= 0 && Util.endsWithConditionalBranch(ir.getControlFlowGraph(), current_block)) {
+        	ISSABasicBlock block1;
+        	ISSABasicBlock block2;
+        	block1 = Util.getNotTakenSuccessor(ir.getControlFlowGraph(), current_block);
+        	block2 = Util.getTakenSuccessor(ir.getControlFlowGraph(), current_block);
+        	if(block_to_constraint.containsKey(block1) == false || block_to_constraint.containsKey(block2) == false) {
+        		return false;
+        	}
+        	Constraint c1 = Constraint.getCopy(block_to_constraint.get(block1));
+        	Constraint c2 = Constraint.getCopy(block_to_constraint.get(block2));
+        	int param_one = -1;
+    		int param_two = -1;
+    		String var_name1 = "";
+    		String var_name2 = "";
+    		String if_name = "";
+			SSACFG cfg = ir.getControlFlowGraph();
+			int vn = current_block.getLastInstruction().getUse(0);
+			boolean found_invoke = false;
+			Iterator<ISSABasicBlock> itr2 = cfg.getPredNodes(current_block);
+			
+			// Find what made up the if
+			while(itr2.hasNext()) {
+				ISSABasicBlock current_block2 = itr2.next();
+				int start2 = current_block2.getFirstInstructionIndex();
+		        int last2 = current_block2.getLastInstructionIndex();
+		        for (int j = last2; j >= start2; j--) {
+		        	if(instructions[j] != null) {
+		        		System.err.println(instructions[j].toString(ir.getSymbolTable()));
+		        		if(!found_invoke) {
+		        			if(instructions[j].getDef(0) == vn) {
+		        				found_invoke = true;
+		        				vn = instructions[j].getUse(0);
+		        				param_one = instructions[j].getUse(1);
+		        				param_two = instructions[j].getUse(2);
+		        				var_name1 = ir.getLocalNames(j, param_one)[0];
+		        				var_name2 = ir.getLocalNames(j, param_two)[0];
+		        			}
+		        		} else {
+		        			if(instructions[j].getDef(0) == vn) {
+		        				AstLexicalAccess ala = (AstLexicalAccess) instructions[j];
+		        				if_name = ala.getAccess(0).getName().fst;
+		        				break;
+		        			}
+		        		}
+		        	}
+		        }
+			}
+			
+			if (if_name.equals("MAGIC_EQ")) {
+				MathNumber right = new MathNumber();
+				MathNumber left = new MathNumber();
+				left.setVariable(param_one, var_name1);
+				right.setVariable(param_two, var_name2);
+				Constraint temp1 = new MathConstraint(left, right, bool_math_operator.NEQ);
+				c1 = new Constraint(temp1, c1, bool_operator.OR);
+				Constraint temp2 = new MathConstraint(left, right, bool_math_operator.EQ);
+				c2 = new Constraint(temp2, c2, bool_operator.OR);
+				c = new Constraint(c1, c2, bool_operator.AND);
+				MathNumber mn1 = new MathNumber();
+				mn1.setVariable(param_one, var_name1);
+				c.FindAndReplace(param_one, mn1);
+				MathNumber mn2 = new MathNumber();
+				mn2.setVariable(param_two, var_name2);
+				c.FindAndReplace(param_two, mn2);
+			}
+        } else {
+        	System.err.println(last_block);
+        	c = Constraint.getCopy(block_to_constraint.get(last_block));
+        }
         for (int i = last; i >= start; i--) { 
         	if(instructions[i] != null) {
         		instructions[i].visit(vis);
@@ -171,8 +245,26 @@ public class PreconditionFinder {
         		}
         	}
         }
-        System.err.println(current_block);
+        
+        boolean has_phi = false;
+        SSAPhiInstruction phi2 = null;
+        for (SSAPhiInstruction phi : Iterator2Iterable.make(current_block.iteratePhis())) {
+            if (phi != null) {
+            	has_phi = true;
+            	phi2 = phi;
+            }
+        }
+        
+        if(has_phi) {
+        	int phi_left = phi2.getDef();
+    		int phi_right1 = phi2.getUse(0);
+    		int phi_right2 = phi2.getUse(1);
+    		MathNumber mn = new MathNumber(phi_right1, phi_right2, "", "", ari_math_operator.PHI);
+			c.FindAndReplace(phi_left, mn);
+        }
+        
         block_to_constraint.put(current_block, c);
+        return true;
 	}
 	
 	private void DoReplacement(ISSABasicBlock current_block, IR ir) {
@@ -180,6 +272,7 @@ public class PreconditionFinder {
         int last = current_block.getLastInstructionIndex();
         SSAInstruction[] instructions = ir.getInstructions();
         Constraint c = block_to_constraint.get(current_block);
+        boolean ignore_first_if = true;
         Queue<ISSABasicBlock> queue = new LinkedList<>(); 
         queue.add(current_block);
         while (!queue.isEmpty()) {
@@ -187,8 +280,11 @@ public class PreconditionFinder {
         	Iterator<ISSABasicBlock> itr = ir.getControlFlowGraph().getPredNodes(last_block);
         	while(itr.hasNext()) {
         		ISSABasicBlock next_block = itr.next();
-        		DoReplacement(last_block, next_block, ir);
-        		queue.add(next_block);
+        		if (ignore_first_if || DoReplacement(last_block, next_block, ir) ) {
+        			queue.add(next_block);
+        			ignore_first_if = false;
+        		}
+        		
         	}
         }
 	}
@@ -265,24 +361,18 @@ public class PreconditionFinder {
 		if (if_name.equals("MAGIC_EQ")) {
 			MathNumber right = new MathNumber();
 			MathNumber left = new MathNumber();
-			right.setVariable(param_one, var_name1);
-			left.setVariable(param_two, var_name2);
-			c = new MathConstraint(right, left, bool_math_operator.NEQ);
-			System.err.println(c);
+			left.setVariable(param_one, var_name1);
+			right.setVariable(param_two, var_name2);
+			c = new MathConstraint(left, right, bool_math_operator.NEQ);
 		} else {
 			c = new Constraint();
 			c.setAlwaysTrue(true);
 		}
 		
-		System.err.println("test");
-		System.err.println(last_block);
-		System.err.println(current_block);
-		
 		if (!block_to_constraint.containsKey(last_block)) {
-			System.err.println("test1");
 			block_to_constraint.put(last_block, c);
+			block_to_constraint.put(current_block, c);
 		} else {
-			System.err.println("test2");
 			Constraint c2 = block_to_constraint.get(last_block);
 			Constraint c3 = new Constraint(c, c2, bool_operator.AND);
 			block_to_constraint.put(last_block, c3);

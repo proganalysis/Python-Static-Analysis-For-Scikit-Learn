@@ -22,10 +22,18 @@ public class Constraint {
 		left = null;
 		right = null;
 		if(c.left != null) {
-			left = new Constraint(c.left);
+			if (c.left instanceof MathConstraint) {
+				left = new MathConstraint((MathConstraint) c.left);
+			} else {
+				left = new Constraint(c.left);
+			}
 		}
 		if(c.right != null) {
-			right = new Constraint(c.right);
+			if (c.right instanceof MathConstraint) {
+				right = new MathConstraint((MathConstraint) c.right);
+			} else {
+				right = new Constraint(c.right);
+			}
 		}
 		linker = c.linker;
 		always_true = c.always_true;

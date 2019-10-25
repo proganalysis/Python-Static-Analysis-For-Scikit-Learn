@@ -5,6 +5,8 @@ import java.util.Queue;
 
 import com.ibm.wala.ssa.ISSABasicBlock;
 
+import master.MathNumber.ari_math_operator;
+
 public class MathConstraint extends Constraint {
 
 	enum bool_math_operator {
@@ -43,8 +45,21 @@ public class MathConstraint extends Constraint {
 			queue.add(right2);
 		}
 		while (!queue.isEmpty()) {
-			System.err.println("Looking for " + variable_to_find);
 			MathNumber t = queue.poll();
+			if(t.hasVariable() && t.getVariable() == variable_to_find) {
+				t.assign(replacement);
+			}
+			if(t.getOper().equals(ari_math_operator.PHI)) {
+				if(t.getLeft().getVariable() == variable_to_find) {
+					t.assign(replacement);
+					continue;
+				}
+				if(t.getRight().getVariable() == variable_to_find) {
+					t.assign(replacement);
+					continue;
+				}
+				continue;
+			}
 			if (t.getLeft() != null) {
 				queue.add(t.getLeft());
 			}
@@ -52,10 +67,7 @@ public class MathConstraint extends Constraint {
 			if (t.getRight() != null) {
 				queue.add(t.getRight());
 			}
-			if(t.hasVariable() && t.getVariable() == variable_to_find) {
-				System.err.println("Found");
-				t.assign(replacement);
-			}
+			
 		}
 	}
 	
@@ -91,7 +103,6 @@ public class MathConstraint extends Constraint {
 			queue.add(right2);
 		}
 		while (!queue.isEmpty()) {
-			System.err.println("Looking for " + variable_to_find);
 			MathNumber t = queue.poll();
 			if (t.getLeft() != null) {
 				queue.add(t.getLeft());

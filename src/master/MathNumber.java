@@ -2,9 +2,9 @@ package master;
 
 public class MathNumber {
 	
-	// If None, nothing is set.
+	// If None, nothing is set. Phi is special
 	enum ari_math_operator {
-		ADD, SUB, MULT, DIV, NONE;
+		ADD, SUB, MULT, DIV, PHI, NONE;
 	}
 	
 	private int constant;
@@ -12,6 +12,8 @@ public class MathNumber {
 	private String var_name;
 	private boolean has_constant;
 	private boolean has_variable;
+	//if has_phi is true, left and right have to be vars
+	private boolean has_phi;
 	private MathNumber left;
 	private MathNumber right;
 	private ari_math_operator oper; 
@@ -20,6 +22,7 @@ public class MathNumber {
 		variable = 0;
 		has_constant = false;
 		has_variable = false;
+		has_phi = false;
 		left = null;
 		right = null;
 		var_name = "";
@@ -31,6 +34,7 @@ public class MathNumber {
 		variable = mn.variable;
 		has_constant = mn.has_constant;
 		has_variable = mn.has_variable;
+		has_phi = mn.has_phi;
 		left = null;
 		right = null;
 		if (mn.left != null) {
@@ -98,6 +102,10 @@ public class MathNumber {
 		return right;
 	}
 	
+	public ari_math_operator getOper() {
+		return oper;
+	}
+	
 	public String toString() {
 		if (oper.equals(ari_math_operator.NONE)) {
 			if(has_variable) {
@@ -109,6 +117,9 @@ public class MathNumber {
 			} else {
 				return "Invalid";
 			}
+		}
+		if (oper.equals(ari_math_operator.PHI)) {
+			return "Phi(" + left + ", " + right + ")";
 		}
 		if (oper.equals(ari_math_operator.ADD)) {
 			return "(" +left + " + " + right +")";
