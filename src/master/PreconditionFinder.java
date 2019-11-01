@@ -41,8 +41,6 @@ public class PreconditionFinder {
 	        for (int i = start; i <= last; i++) {
 	        	if(instructions[i] != null) {
 	        		instructions[i].visit(vis);
-	        		// System.err.println(instructions[i].toString(ir.getSymbolTable()));
-	        		// System.err.println(vis.getThrow());
 	        		boolean is_a_throw = vis.getThrow();
 	        		
 	        		if (is_a_throw) {
@@ -65,7 +63,6 @@ public class PreconditionFinder {
 			}
 		}
 			
-		
 		return "";
 	}
 	
@@ -209,19 +206,14 @@ public class PreconditionFinder {
 				c.FindAndReplace(param_two, mn2);
 			}
         } else {
-        	System.err.println(last_block);
         	c = Constraint.getCopy(block_to_constraint.get(last_block));
         }
+        
         for (int i = last; i >= start; i--) { 
         	if(instructions[i] != null) {
         		instructions[i].visit(vis);
-        		// System.err.println(instructions[i].toString(ir.getSymbolTable()));
-        		// System.err.println(vis.getThrow());
         		boolean is_a_binary = vis.getBinaryOp();
-        		boolean is_phi = vis.GetIsPhi();
         		if (is_a_binary) {
-        			System.err.println("binaries");
-        			System.err.println(instructions[i].toString(ir.getSymbolTable()));
         			int result = instructions[i].getDef();
     				//String result = ir.getLocalNames(i, instructions[i].getDef())[0];
     				int param_one = instructions[i].getUse(0);
@@ -236,10 +228,22 @@ public class PreconditionFinder {
     				}
         			if (((SSABinaryOpInstruction) instructions[i]).getOperator().equals(IBinaryOpInstruction.Operator.ADD)) {
         				MathNumber mn = new MathNumber(param_one, param_two, var_name1, var_name2, ari_math_operator.ADD);
+        				if (ir.getSymbolTable().isConstant(param_one)) {
+        					mn.getLeft().setConstant(ir.getSymbolTable().getIntValue(param_one));
+        				}
+        				if (ir.getSymbolTable().isConstant(param_two)) {
+        					mn.getRight().setConstant(ir.getSymbolTable().getIntValue(param_two));
+        				}
         				c.FindAndReplace(result, mn);
         			}
         			if (((SSABinaryOpInstruction) instructions[i]).getOperator().equals(IBinaryOpInstruction.Operator.MUL)) {
         				MathNumber mn = new MathNumber(param_one, param_two, var_name1, var_name2, ari_math_operator.MULT);
+        				if (ir.getSymbolTable().isConstant(param_one)) {
+        					mn.getLeft().setConstant(ir.getSymbolTable().getIntValue(param_one));
+        				}
+        				if (ir.getSymbolTable().isConstant(param_two)) {
+        					mn.getRight().setConstant(ir.getSymbolTable().getIntValue(param_two));
+        				}
         				c.FindAndReplace(result, mn);
         			}
         		}
@@ -252,15 +256,23 @@ public class PreconditionFinder {
             if (phi != null) {
             	has_phi = true;
             	phi2 = phi;
+            	int phi_left = phi2.getDef();
+        		int phi_right1 = phi2.getUse(0);
+        		int phi_right2 = phi2.getUse(1);
+        		String var_name1 = "";
+    			String var_name2 = "";
+    			if ((int) ir.getLocalNames(current_block.getFirstInstructionIndex(), phi_right1).length > 0) {
+    				var_name1 = ir.getLocalNames(current_block.getFirstInstructionIndex(), phi_right1)[0];
+    			}
+    			if ((int) ir.getLocalNames(current_block.getFirstInstructionIndex(), phi_right2).length > 0) {
+    				var_name2 = ir.getLocalNames(current_block.getFirstInstructionIndex(), phi_right2)[0];
+    			}
+        		MathNumber mn = new MathNumber();
+        		for(int i = 0; i < phi2.getNumberOfUses(); i++) {
+        			mn.addToPhi(phi2.getUse(i));
+        		}
+    			c.FindAndReplace(phi_left, mn);
             }
-        }
-        
-        if(has_phi) {
-        	int phi_left = phi2.getDef();
-    		int phi_right1 = phi2.getUse(0);
-    		int phi_right2 = phi2.getUse(1);
-    		MathNumber mn = new MathNumber(phi_right1, phi_right2, "", "", ari_math_operator.PHI);
-			c.FindAndReplace(phi_left, mn);
         }
         
         block_to_constraint.put(current_block, c);
@@ -345,8 +357,6 @@ public class PreconditionFinder {
 		        			if(instructions[j].getDef(0) == vn) {
 		        				System.err.println(instructions[j].toString());
 		        				AstLexicalAccess ala = (AstLexicalAccess) instructions[j];
-		        				System.err.println(param_one);
-		        				System.err.println(param_two);
 		        				System.err.println(ala.getAccess(0).getName().fst);
 		        				if_name = ala.getAccess(0).getName().fst;
 		        				break;
@@ -363,6 +373,12 @@ public class PreconditionFinder {
 			MathNumber left = new MathNumber();
 			left.setVariable(param_one, var_name1);
 			right.setVariable(param_two, var_name2);
+			if (ir.getSymbolTable().isConstant(param_one)) {
+				left.setConstant(ir.getSymbolTable().getIntValue(param_one));
+			}
+			if (ir.getSymbolTable().isConstant(param_two)) {
+				right.setConstant(ir.getSymbolTable().getIntValue(param_two));
+			}
 			c = new MathConstraint(left, right, bool_math_operator.NEQ);
 		} else {
 			c = new Constraint();

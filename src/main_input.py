@@ -3,14 +3,16 @@ def MAGIC_EQ(x, y):
 
 def Banana(c):
 	b = c + 7
-	d = 10
+	x = 1
+	d = x + 9
 	a = c
 	if (MAGIC_EQ(c, b)):
 		a = 2 * c
-	elif (MAGIC_EQ(d, c)):
+	elif (MAGIC_EQ(a, c)):
 		a = c + 5
+		d = b + 10
 	else:
-		a = b + 10
+		d = a + 4
 	if (MAGIC_EQ(a, d)):
 		raise("Oh no")
 Banana(10)

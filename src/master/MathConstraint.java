@@ -50,13 +50,8 @@ public class MathConstraint extends Constraint {
 				t.assign(replacement);
 			}
 			if(t.getOper().equals(ari_math_operator.PHI)) {
-				if(t.getLeft().getVariable() == variable_to_find) {
+				if(t.getPhiSet().contains(variable_to_find)) {
 					t.assign(replacement);
-					continue;
-				}
-				if(t.getRight().getVariable() == variable_to_find) {
-					t.assign(replacement);
-					continue;
 				}
 				continue;
 			}
