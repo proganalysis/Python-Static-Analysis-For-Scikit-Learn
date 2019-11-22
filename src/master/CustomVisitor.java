@@ -8,7 +8,7 @@ import com.ibm.wala.ssa.SSAInstruction;
 import com.ibm.wala.ssa.SSAPhiInstruction;
 import com.ibm.wala.ssa.SSAThrowInstruction;
 
-public class CustomVisitor extends SSAInstruction.Visitor implements PythonInstructionVisitor {
+public class CustomVisitor extends SSAInstruction.Visitor {
 	
 	private boolean is_if;
 	private boolean is_throw;

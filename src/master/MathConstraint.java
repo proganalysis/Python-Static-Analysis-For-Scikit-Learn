@@ -120,6 +120,18 @@ public class MathConstraint extends Constraint {
 		if (linker.equals(bool_math_operator.NEQ)) {
 			return left2.toString() + " != " + right2.toString();
 		}
+		if (linker.equals(bool_math_operator.G)) {
+			return left2.toString() + " > " + right2.toString();
+		}
+		if (linker.equals(bool_math_operator.L)) {
+			return left2.toString() + " < " + right2.toString();
+		}
+		if (linker.equals(bool_math_operator.GEQ)) {
+			return left2.toString() + " >= " + right2.toString();
+		}
+		if (linker.equals(bool_math_operator.LEQ)) {
+			return left2.toString() + " <= " + right2.toString();
+		}
 		return "";
 	}
 }

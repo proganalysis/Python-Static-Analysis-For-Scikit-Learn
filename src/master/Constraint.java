@@ -130,6 +130,6 @@ public class Constraint {
 		if (linker.equals(bool_operator.OR)) {
 			temp = "||";
 		}
-		return "(" + left.toString() + " " + temp + " " + right.toString() + ")";
+		return "(" + left.toString() + ") " + temp + " (" + right.toString() + ")";
 	}
 }

@@ -5,13 +5,18 @@ import java.util.Set;
 
 public class MathNumber {
 	
+	enum var_type {
+		MATH, ENUM, UNKNOWN;
+	}
+	
 	// If None, nothing is set. Phi is special
 	enum ari_math_operator {
 		ADD, SUB, MULT, DIV, PHI, NONE;
 	}
 	
-	private int constant_val;
+	private String constant_val;
 	private int variable;
+	private var_type variable_type;
 	private String var_name;
 	private boolean has_constant;
 	private boolean has_variable;
@@ -22,7 +27,7 @@ public class MathNumber {
 	private MathNumber right;
 	private ari_math_operator oper; 
 	MathNumber() {
-		constant_val = 0;
+		constant_val = "";
 		variable = 0;
 		has_constant = false;
 		has_variable = false;
@@ -32,6 +37,7 @@ public class MathNumber {
 		var_name = "";
 		oper = ari_math_operator.NONE;
 		phis = new HashSet<Integer>();
+		variable_type = var_type.UNKNOWN;
 	}
 	
 	MathNumber(MathNumber mn) {
@@ -51,10 +57,11 @@ public class MathNumber {
 		var_name = mn.var_name;
 		oper = mn.oper;
 		phis = new HashSet<Integer>(mn.phis);
+		variable_type = mn.variable_type;
 	}
 	
 	MathNumber(int var1, int var2, String name1, String name2, ari_math_operator op) {
-		constant_val = 0;
+		constant_val = "";
 		variable = 0;
 		has_constant = false;
 		has_variable = false;
@@ -65,6 +72,7 @@ public class MathNumber {
 		oper = op;
 		var_name = "";
 		phis = new HashSet<Integer>();
+		variable_type = var_type.UNKNOWN;
 	}
 	
 	public void assign(MathNumber nm) {
@@ -77,6 +85,7 @@ public class MathNumber {
 		oper = nm.oper;
 		var_name = nm.var_name;
 		phis = nm.phis;
+		variable_type = nm.variable_type;
 	}
 	
 	public void setVariable(int i) {
@@ -92,7 +101,16 @@ public class MathNumber {
 	
 	public void setConstant(int c) {
 		has_constant = true;
+		constant_val = "" + c;
+	}
+	
+	public void setConstant(String c) {
+		has_constant = true;
 		constant_val = c;
+	}
+	
+	public void setType(var_type v) {
+		variable_type = v;
 	}
 	
 	public void addToPhi(int var) {
