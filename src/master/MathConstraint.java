@@ -1,9 +1,11 @@
 package master;
 
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Queue;
 
-import com.ibm.wala.ssa.ISSABasicBlock;
+import com.ibm.wala.ssa.IR;
 
 import master.MathNumber.ari_math_operator;
 
@@ -66,7 +68,7 @@ public class MathConstraint extends Constraint {
 		}
 	}
 	
-	protected void FindAndReplaceVar2(int variable_to_find, int variable_to_replace) {
+	protected void lock2 (HashSet<Integer> param_set, String method_name) {
 		Queue<MathNumber> queue = new LinkedList<>();
 		if (left2 != null) {
 			queue.add(left2);
@@ -83,13 +85,11 @@ public class MathConstraint extends Constraint {
 			if (t.getRight() != null) {
 				queue.add(t.getRight());
 			}
-			if(t.hasVariable() && t.getVariable() == variable_to_find) {
-				t.setVariable(variable_to_replace);
-			}
+			t.lock(param_set, method_name);
 		}
 	}
 	
-	protected void FindAndReplace2(String variable_to_find, MathNumber replacement) {
+	protected void reconfigure2(HashMap<Integer, Integer> map_param_to_current, IR ir, int instruction_line) {
 		Queue<MathNumber> queue = new LinkedList<>();
 		if (left2 != null) {
 			queue.add(left2);
@@ -106,10 +106,7 @@ public class MathConstraint extends Constraint {
 			if (t.getRight() != null) {
 				queue.add(t.getRight());
 			}
-			if(t.hasVariable() && t.getVariableName().equals(variable_to_find)) {
-				System.err.println("Found");
-				//t.assign(replacement);
-			}
+			t.reconfigure(map_param_to_current, ir, instruction_line);
 		}
 	}
 	

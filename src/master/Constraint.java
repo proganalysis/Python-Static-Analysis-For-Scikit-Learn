@@ -1,5 +1,10 @@
 package master;
 
+import java.util.HashMap;
+import java.util.HashSet;
+
+import com.ibm.wala.ssa.IR;
+
 public class Constraint {
 	
 	// If NOT OR NONE than only right should be set.
@@ -55,7 +60,6 @@ public class Constraint {
 	
 	public static Constraint getCopy(MathConstraint c) {
 		return new MathConstraint(c);
-		
 	}
 	
 	public void FindAndReplace(int variable_to_find, MathNumber replacement) {
@@ -70,27 +74,29 @@ public class Constraint {
 		}
 	}
 	
-	public void FindAndReplaceVar(int variable_to_find, int variable_to_replace) {
+	// lock is used once we're done finding a precondition.
+	public void lock(HashSet<Integer> param_set, String method_name) {
 		if(this instanceof MathConstraint) {
-			((MathConstraint)this).FindAndReplaceVar2(variable_to_find, variable_to_replace);
+			((MathConstraint)this).lock2(param_set, method_name);
 		}
 		if(left != null) {
-			left.FindAndReplaceVar(variable_to_find, variable_to_replace);
+			left.lock(param_set, method_name);
 		}
 		if(right != null) {
-			right.FindAndReplaceVar(variable_to_find, variable_to_replace);
+			right.lock(param_set, method_name);
 		}
 	}
 	
-	public void FindAndReplace(String variable_to_find, MathNumber replacement) {
+	// reconfigure is used, once we need to use a precondition from another function.
+	public void reconfigure(HashMap<Integer, Integer> map_param_to_current, IR ir, int instruction_line) {
 		if(this instanceof MathConstraint) {
-			((MathConstraint)this).FindAndReplace2(variable_to_find, replacement);
+			((MathConstraint)this).reconfigure2(map_param_to_current, ir, instruction_line);
 		}
 		if(left != null) {
-			left.FindAndReplace(variable_to_find, replacement);
+			left.reconfigure(map_param_to_current, ir, instruction_line);
 		}
 		if(right != null) {
-			right.FindAndReplace(variable_to_find, replacement);
+			right.reconfigure(map_param_to_current, ir, instruction_line);
 		}
 	}
 	

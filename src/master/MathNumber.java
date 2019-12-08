@@ -1,7 +1,10 @@
 package master;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+
+import com.ibm.wala.ssa.IR;
 
 public class MathNumber {
 	
@@ -18,6 +21,8 @@ public class MathNumber {
 	private int variable;
 	private var_type variable_type;
 	private String var_name;
+	private String method_name;
+	private boolean locked;
 	private boolean has_constant;
 	private boolean has_variable;
 	//if has_phi is true, left and right have to be vars
@@ -38,6 +43,8 @@ public class MathNumber {
 		oper = ari_math_operator.NONE;
 		phis = new HashSet<Integer>();
 		variable_type = var_type.UNKNOWN;
+		locked = false;
+		method_name = "";
 	}
 	
 	MathNumber(MathNumber mn) {
@@ -58,6 +65,8 @@ public class MathNumber {
 		oper = mn.oper;
 		phis = new HashSet<Integer>(mn.phis);
 		variable_type = mn.variable_type;
+		locked = mn.locked;
+		method_name = mn.method_name;
 	}
 	
 	MathNumber(int var1, int var2, String name1, String name2, ari_math_operator op) {
@@ -73,6 +82,8 @@ public class MathNumber {
 		var_name = "";
 		phis = new HashSet<Integer>();
 		variable_type = var_type.UNKNOWN;
+		locked = false;
+		method_name = "";
 	}
 	
 	public void assign(MathNumber nm) {
@@ -131,6 +142,10 @@ public class MathNumber {
 		return has_variable;
 	}
 	
+	public boolean getLocked() {
+		return locked;
+	}
+	
 	public MathNumber getLeft() {
 		return left;
 	}
@@ -147,22 +162,57 @@ public class MathNumber {
 		return phis;
 	}
 	
+	public void lock(HashSet<Integer> param_set, String method_name) {
+		if (!locked) {
+			if (param_set.contains(variable)) {
+				this.method_name = "PARAMETER";
+			} else {
+				this.method_name = method_name;
+			}
+			locked = true;
+		}
+	}
+	
+	public void reconfigure(HashMap<Integer, Integer> map_param_to_current, IR ir, int instruction_line) {
+		if (map_param_to_current.containsKey(variable)) {
+			if(locked) {
+				variable = map_param_to_current.get(variable);
+				locked = false;
+				method_name = "";
+				has_constant = false;
+				String[] t1 = ir.getLocalNames(instruction_line, variable);
+				var_name = "";
+				if(t1.length >= 1) {
+					var_name = ir.getLocalNames(instruction_line, variable)[0];
+				}
+				if (ir.getSymbolTable().isConstant(variable)) {
+					has_constant = true;
+					if(ir.getSymbolTable().isNumberConstant(variable)) {
+						constant_val = "" + ir.getSymbolTable().getIntValue(variable);
+					}
+					if(ir.getSymbolTable().isStringConstant(variable)) {
+						constant_val = ir.getSymbolTable().getStringValue(variable);
+					}
+				}
+			}
+		}
+	}
+	
 	public String toString() {
 		if (oper.equals(ari_math_operator.NONE)) {
 			if(has_variable) {
-				if (var_name.equals("")) {
-					if(has_constant) {
-						return "v" + variable + "#:" + constant_val;
-					} else {
-						return "v" + variable;
-					}
-				} else {
-					if(has_constant) {
-						return "v" + variable + "[=" + var_name + "]#:" + constant_val;
-					} else {
-						return "v" + variable + "[=" + var_name + "]";
-					}
+				String to_return = "";
+				to_return += "v" + variable;
+				if (locked) {
+					to_return += "[" + method_name + "]";
 				}
+				if (!var_name.equals("")) {
+					to_return += "[=" + var_name + "]";
+				} 
+				if (has_constant) {
+					to_return += "#:" + constant_val;
+				}
+				return to_return;
 			} else {
 				return "Invalid";
 			}
@@ -186,6 +236,12 @@ public class MathNumber {
 		}
 		if (oper.equals(ari_math_operator.MULT)) {
 			return "(" +left + " * " + right +")";
+		}
+		if (oper.equals(ari_math_operator.DIV)) {
+			return "(" +left + " / " + right +")";
+		}
+		if (oper.equals(ari_math_operator.SUB)) {
+			return "(" +left + " - " + right +")";
 		}
 		
 		return "Invalid";
